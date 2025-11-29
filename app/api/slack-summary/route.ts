@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       .filter((m: any) => m.text && m.text !== "Hi, I'm ready to chat.");
 
     console.log('💬 Conversation messages to summarize:', conversationMessages.length);
-    console.log('📝 Sample messages:', conversationMessages.slice(0, 3).map(m => ({ role: m.role, preview: m.text.substring(0, 50) })));
+    console.log('📝 Sample messages:', conversationMessages.slice(0, 3).map((m: { role: string; text: string }) => ({ role: m.role, preview: m.text.substring(0, 50) })));
 
     if (conversationMessages.length === 0) {
       console.error('❌ No conversation messages to summarize');
