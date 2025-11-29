@@ -19,24 +19,22 @@ function ChatInterface() {
   const searchParams = useSearchParams();
   
   // Extract Calendly parameters
-  const name = searchParams.get('name');
-  const email = searchParams.get('email');
-  const challenge = searchParams.get('a1'); // "What is your biggest challenge?"
-  const role = searchParams.get('a2');      // "What is your role?"
+  const name = searchParams.get('invitee_full_name');
+  const email = searchParams.get('invitee_email');
+  const challenge = searchParams.get('answer_1'); // "What is your biggest challenge?"
+  const role = searchParams.get('answer_2');      // "What is your role?"
 
   // Cast useChat to any because of v5/v2 type mismatches in this specific setup
   // The runtime behavior for useChat usually supports 'api', 'body', and returns 'messages', 'input', etc.
   // If the installed version is stripped down, we might need to rely on what's available.
   // But for now, we assume standard behavior and silence TS.
-  const chatHelpers = useChat({
+  const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat({
     api: '/api/chat',
     body: {
       data: { name, email, challenge, role }
     },
     maxSteps: 5,
   } as any) as any;
-
-  const { messages, input, handleInputChange, handleSubmit, append, isLoading } = chatHelpers;
 
   const inputValue = input || ''; // Ensure input is never undefined
 
