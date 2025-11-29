@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
-import { LAYERPATH_AI_AGENT_PROMPT } from '@/app/lib/prompts';
+import { streamText } from 'ai';
+import { LAYERPATH_PRE_MEETING_AGENT_PROMPT } from '@/app/lib/prompts';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -33,9 +32,8 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    system: LAYERPATH_AI_AGENT_PROMPT,
+    system: LAYERPATH_PRE_MEETING_AGENT_PROMPT,
     messages: processedMessages,
-    maxSteps: 5,
   } as any);
 
   const res = result as any;

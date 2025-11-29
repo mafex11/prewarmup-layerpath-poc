@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Layerpath AI Demo",
-  description: "AI Interactive Demo Agent",
+  title: "Path AI Pre-Meeting Warm-Up poc",
+  description: "AI Pre-Meeting Warm-Up poc",
 };
 
 export default function RootLayout({
