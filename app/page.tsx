@@ -19,25 +19,20 @@ function ChatInterface() {
   const searchParams = useSearchParams();
   
   // Extract Calendly parameters
-  const name = searchParams.get('invitee_full_name');
+  const name = searchParams.get('invitee_full_name') || 'Guest';
   const email = searchParams.get('invitee_email');
-  const challenge = searchParams.get('answer_1'); // "What is your biggest challenge?"
-  const role = searchParams.get('answer_2');      // "What is your role?"
+  const challenge = searchParams.get('answer_1'); // "What's your biggest challenge with product demos today?"
+  const demoType = searchParams.get('answer_2');  // "Are you looking to enhance your demos, sales team demos or both?"
 
-  // Cast useChat to any because of v5/v2 type mismatches in this specific setup
-  // The runtime behavior for useChat usually supports 'api', 'body', and returns 'messages', 'input', etc.
-  // If the installed version is stripped down, we might need to rely on what's available.
-  // But for now, we assume standard behavior and silence TS.
-  const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat({
+  const chatHelpers = useChat({
     api: '/api/chat',
-    body: {
-      data: { name, email, challenge, role }
-    },
     maxSteps: 5,
   } as any) as any;
 
-  const inputValue = input || ''; // Ensure input is never undefined
-
+  const { messages, sendMessage, status, setMessages } = chatHelpers;
+  const isLoading = status === 'submitted' || status === 'streaming';
+  
+  const [inputValue, setInputValue] = useState('');
   const hasStarted = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -46,22 +41,71 @@ function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Proactive start
+  // Initialize system message and trigger AI on first load
   useEffect(() => {
-    if (!hasStarted.current) {
+    if (!hasStarted.current && setMessages && sendMessage && messages.length === 0 && (name || challenge)) {
       hasStarted.current = true;
-      // We send a hidden message to trigger the AI's first response
-      if (append) {
-        append({
-          role: 'user',
-          content: 'Start the conversation now.',
-        });
-      }
-    }
-  }, [append]);
+      
+      // Add system message with Calendly context
+      setMessages([
+        {
+          id: 'system-context',
+          role: 'system',
+          content: `CONTEXT OVERRIDE: You are now talking to ${name} (${email || "no email"}).
 
-  // Filter out the hidden start message from the UI
-  const visibleMessages = (messages || []).filter((m: any) => m.content !== 'Start the conversation now.');
+Their Calendly form responses:
+- Biggest challenge with product demos: "${challenge || "not specified"}"
+- Looking to enhance: "${demoType || "not specified"}"
+
+CRITICAL INSTRUCTIONS:
+1. Do NOT greet them generically
+2. Do NOT ask for their name (you already have it: ${name})
+3. IMMEDIATELY start by acknowledging their specific challenge about: "${challenge}"
+4. Ask ONE focused follow-up question to dig deeper into their challenge
+5. Keep your response to 1-3 sentences maximum
+
+Start now with a personalized opening.`
+        }
+      ]);
+      
+      // Trigger AI response
+      setTimeout(() => {
+        sendMessage({ text: 'Hi, I\'m ready to chat.' });
+      }, 100);
+    }
+  }, [setMessages, sendMessage, messages, name, email, challenge, demoType]);
+
+  // Filter out system and trigger messages, extract text from parts
+  const visibleMessages = (messages || [])
+    .filter((m: any) => {
+      // Hide system messages
+      if (m.role === 'system') return false;
+      
+      // Filter by content if it exists
+      if (m.content) {
+        return m.content !== 'Hi, I\'m ready to chat.';
+      }
+      // Filter by parts if content doesn't exist
+      if (m.parts) {
+        const textContent = m.parts
+          .filter((p: any) => p.type === 'text')
+          .map((p: any) => p.text)
+          .join('');
+        return textContent !== 'Hi, I\'m ready to chat.';
+      }
+      return true;
+    })
+    .map((m: any) => {
+      // If message has parts, extract text
+      if (m.parts && !m.content) {
+        const textContent = m.parts
+          .filter((p: any) => p.type === 'text')
+          .map((p: any) => p.text)
+          .join('');
+        return { ...m, content: textContent };
+      }
+      return m;
+    });
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-xl border-x border-gray-100">
@@ -131,11 +175,21 @@ function ChatInterface() {
 
       {/* Input Area */}
       <div className="p-4 bg-white border-t">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!inputValue.trim()) return;
+          
+          const message = inputValue;
+          setInputValue('');
+          
+          if (sendMessage) {
+            sendMessage({ text: message });
+          }
+        }} className="flex gap-2">
           <input
             className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
             value={inputValue}
-            onChange={handleInputChange}
+            onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type your message..."
             autoFocus
           />
