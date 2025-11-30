@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Path AI Pre-Meeting Warm-Up poc",
-  description: "AI Pre-Meeting Warm-Up poc",
+  title: "path ai pre meeting warmup poc",
+  description: "path ai pre meeting warmup poc",
 };
 
 export default function RootLayout({
