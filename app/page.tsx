@@ -213,14 +213,14 @@ Start the conversation now.`
           </p>
 
           {/* Meeting Info Card */}
-          {/* <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-6 space-y-3">
+          <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-center gap-2 text-sm">
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#41E1C4' }}></span>
               <span className="text-zinc-400">Your meeting is scheduled for</span>
             </div>
             <p className="text-lg font-semibold" style={{ color: '#41E1C4' }}>{meetingTime}</p>
             <p className="text-sm text-zinc-500">{eventName || '30 Minute Meeting'}</p>
-          </div> */}
+          </div>
 
           {/* Additional Info */}
           <div className="text-sm text-zinc-500 space-y-2 pt-4">
