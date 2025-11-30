@@ -67,44 +67,36 @@ function ChatInterface() {
     }
   }, [messages, isLoading]);
 
-  // Detect [END_SESSION] marker and handle stuck loops
+  // Detect [END_SESSION] marker with robust checking
   useEffect(() => {
     if (messages.length === 0 || conversationEnded) return;
     
     const lastMessage = messages[messages.length - 1];
-    const lastContent = lastMessage.content || '';
     
     // Only check AI messages
     if (lastMessage.role !== 'assistant') return;
     
-    // Count "Talk soon!" repetitions (AI stuck in loop)
-    const recentAIMessages = messages
-      .slice(-6) // Last 6 messages
-      .filter((m: any) => m.role === 'assistant')
-      .map((m: any) => m.content || '');
-    
-    const talkSoonCount = recentAIMessages.filter((msg: string) => 
-      msg.toLowerCase().includes('talk soon')
-    ).length;
-    
-    console.log('🔍 End check:', {
-      hasMarker: lastContent.includes('[END_SESSION]'),
-      talkSoonRepetitions: talkSoonCount,
-      lastChars: lastContent.substring(Math.max(0, lastContent.length - 60)),
-    });
-    
-    // Method 1: AI explicitly includes [END_SESSION]
-    if (lastContent.includes('[END_SESSION]')) {
-      console.log('✅ [END_SESSION] marker detected! AI decided to end.');
-      triggerConversationEnd();
-      return;
+    // Get message content
+    let content = lastMessage.content || '';
+    if (!content && lastMessage.parts) {
+      content = lastMessage.parts
+        .filter((p: any) => p.type === 'text')
+        .map((p: any) => p.text)
+        .join('');
     }
     
-    // Method 2: AI said "Talk soon!" 2+ times (stuck in goodbye loop)
-    if (talkSoonCount >= 2) {
-      console.log('⚠️ AI stuck in goodbye loop - forcing end');
+    // Check for [END_SESSION] marker (case-insensitive, flexible spacing)
+    const hasEndMarker = /\[END_?SESSION\]/i.test(content);
+    
+    console.log('🔍 Checking for end marker:', {
+      hasMarker: hasEndMarker,
+      lastChars: content.substring(Math.max(0, content.length - 100)),
+      messageId: lastMessage.id,
+    });
+    
+    if (hasEndMarker) {
+      console.log('✅ [END_SESSION] marker detected! Ending conversation.');
       triggerConversationEnd();
-      return;
     }
     
   }, [messages, conversationEnded, name, email, meetingTime, challenge]);
@@ -170,9 +162,9 @@ Start the conversation now.`
           .join('');
       }
       
-      // Remove [END_SESSION] marker from display
+      // Remove [END_SESSION] marker from display (case-insensitive, flexible)
       if (content && typeof content === 'string') {
-        content = content.replace(/\s*\[END_SESSION\]\s*/g, '').trim();
+        content = content.replace(/\s*\[END_?SESSION\]\s*/gi, '').trim();
       }
       
       return { ...m, content };
@@ -221,14 +213,14 @@ Start the conversation now.`
           </p>
 
           {/* Meeting Info Card */}
-          <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-6 space-y-3">
+          {/* <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-6 space-y-3">
             <div className="flex items-center justify-center gap-2 text-sm">
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#41E1C4' }}></span>
               <span className="text-zinc-400">Your meeting is scheduled for</span>
             </div>
             <p className="text-lg font-semibold" style={{ color: '#41E1C4' }}>{meetingTime}</p>
             <p className="text-sm text-zinc-500">{eventName || '30 Minute Meeting'}</p>
-          </div>
+          </div> */}
 
           {/* Additional Info */}
           <div className="text-sm text-zinc-500 space-y-2 pt-4">

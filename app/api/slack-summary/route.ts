@@ -1,6 +1,9 @@
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export const maxDuration = 30;
 
@@ -36,8 +39,8 @@ export async function POST(req: Request) {
             .map((p: any) => p.text)
             .join('');
         }
-        // Remove [END_SESSION] marker
-        text = text.replace(/\s*\[END_SESSION\]\s*/g, '').trim();
+        // Remove [END_SESSION] marker (case-insensitive)
+        text = text.replace(/\s*\[END_?SESSION\]\s*/gi, '').trim();
         return {
           role: m.role,
           text: text,
@@ -73,53 +76,29 @@ ${conversationText}
 
 Provide a clear bullet-point summary (5-10 bullets). Be specific and actionable.`;
 
-    const summaryResult = await generateText({
-      model: openai('gpt-4o'),
-      prompt: summaryPrompt,
+    const summaryResult = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'user', content: summaryPrompt },
+      ],
     });
 
-    const summary = summaryResult.text || 'Summary generation failed.';
+    const summary = summaryResult.choices[0]?.message?.content || 'Summary generation failed.';
     console.log('✅ AI Summary generated:', summary.substring(0, 200) + '...');
 
-    // Format Slack message
+    // Format Slack message - clean and plain
     const slackMessage = {
-      blocks: [
-        {
-          type: 'header',
-          text: {
-            type: 'plain_text',
-            text: '🎯 New Pre-Meeting Chat Summary',
-            emoji: true,
-          },
-        },
-        {
-          type: 'section',
-          fields: [
-            { type: 'mrkdwn', text: `*Customer:*\n${customerInfo.name || 'Unknown'}` },
-            { type: 'mrkdwn', text: `*Email:*\n${customerInfo.email || 'Unknown'}` },
-            { type: 'mrkdwn', text: `*Meeting:*\n${customerInfo.meetingTime || 'Unknown'}` },
-            { type: 'mrkdwn', text: `*Challenge:*\n${customerInfo.challenge || 'Unknown'}` },
-          ],
-        },
-        { type: 'divider' },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*📋 Conversation Summary:*\n${summary}`,
-          },
-        },
-        { type: 'divider' },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: `Conversation completed at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`,
-            },
-          ],
-        },
-      ],
+      text: `New Pre-Meeting Chat Summary
+
+Customer: ${customerInfo.name || 'Unknown'}
+Email: ${customerInfo.email || 'Unknown'}
+Meeting: ${customerInfo.meetingTime || 'Unknown'}
+Challenge: ${customerInfo.challenge || 'Unknown'}
+
+Conversation Summary:
+${summary}
+
+Conversation completed at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`
     };
 
     // Send to Slack

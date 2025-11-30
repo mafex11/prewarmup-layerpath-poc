@@ -9,11 +9,6 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { messages } = body;
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not set');
-  }
-
   // Convert UIMessage format to standard message format if needed
   const processedMessages = messages.map((msg: any) => {
     if (msg.parts) {
