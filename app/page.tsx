@@ -109,14 +109,7 @@ function ChatInterface() {
     // Check for [END_SESSION] marker (case-insensitive, flexible spacing)
     const hasEndMarker = /\[END_?SESSION\]/i.test(content);
     
-    console.log('Checking for end marker:', {
-      hasMarker: hasEndMarker,
-      lastChars: content.substring(Math.max(0, content.length - 100)),
-      messageId: lastMessage.id,
-    });
-    
     if (hasEndMarker) {
-      console.log('[END_SESSION] marker detected! Ending conversation.');
       triggerConversationEnd();
     }
     
@@ -130,8 +123,7 @@ function ChatInterface() {
         messages: messages,
         customerInfo: { name, email, meetingTime, challenge, demoType },
       }),
-    }).then(() => console.log('Slack summary sent'))
-      .catch((e) => console.error('Slack summary failed:', e));
+    }).catch(() => {});
     
     setConversationEnded(true);
   };

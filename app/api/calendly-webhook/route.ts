@@ -15,18 +15,14 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(req: Request) {
-  console.log('Calendly webhook received');
-
   try {
     const payload = await req.json();
-    console.log('Webhook payload:', JSON.stringify(payload, null, 2));
 
     // Extract event type
     const eventType = payload.event;
     
     // Only handle invitee.created events
     if (eventType !== 'invitee.created') {
-      console.log('Ignoring event type:', eventType);
       return NextResponse.json({ message: 'Event type not handled' });
     }
 
@@ -35,7 +31,6 @@ export async function POST(req: Request) {
     const event = payload.payload?.event;
     
     if (!invitee || !event) {
-      console.error('Missing invitee or event data');
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -56,13 +51,9 @@ export async function POST(req: Request) {
       q.question.toLowerCase().includes('looking to')
     )?.answer || 'Not specified';
 
-    console.log('Invitee details:', { name, email, challenge, demoType });
-
     // Generate custom chat link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const chatLink = `${appUrl}/?invitee_full_name=${encodeURIComponent(name)}&invitee_email=${encodeURIComponent(email)}&answer_1=${encodeURIComponent(challenge)}&answer_2=${encodeURIComponent(demoType)}&event_start_time=${encodeURIComponent(eventStartTime)}&event_type_name=${encodeURIComponent(eventName)}`;
-
-    console.log('Generated chat link:', chatLink);
 
     // Format meeting time
     const meetingDate = new Date(eventStartTime);
@@ -206,8 +197,6 @@ Layerpath
       html: emailHtml,
     });
 
-    console.log('Email sent successfully:', info.messageId);
-
     return NextResponse.json({ 
       success: true, 
       message: 'Email sent',
@@ -216,7 +205,6 @@ Layerpath
     });
 
   } catch (error: any) {
-    console.error('Webhook error:', error);
     return NextResponse.json({ 
       success: false, 
       error: error.message 
