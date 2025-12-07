@@ -109,7 +109,14 @@ function ChatInterface() {
     // Check for [END_SESSION] marker (case-insensitive, flexible spacing)
     const hasEndMarker = /\[END_?SESSION\]/i.test(content);
     
+    console.log('Checking for end marker:', {
+      hasMarker: hasEndMarker,
+      lastChars: content.substring(Math.max(0, content.length - 100)),
+      messageId: lastMessage.id,
+    });
+    
     if (hasEndMarker) {
+      console.log('[END_SESSION] marker detected! Ending conversation.');
       triggerConversationEnd();
     }
     
@@ -123,7 +130,8 @@ function ChatInterface() {
         messages: messages,
         customerInfo: { name, email, meetingTime, challenge, demoType },
       }),
-    }).catch(() => {});
+    }).then(() => console.log('Slack summary sent'))
+      .catch((e) => console.error('Slack summary failed:', e));
     
     setConversationEnded(true);
   };
@@ -147,11 +155,16 @@ function ChatInterface() {
 - **Meeting**: ${eventName || '30 Minute Meeting'} on ${meetingTime} with Vinay (CEO)
 
 ## Your Immediate Instruction
-You are already Path (defined in your system prompt).
-1. First sentence: Acknowledge that their meeting with Vinay is set.
-2. Second sentence: Mention you'd like to know more about their challenge ("${challenge}") before the meeting.
-3. Then ask: "Could you share more about the specific aspects you're finding difficult?"
-4. Keep the entire greeting to 1-2 sentences.
+You are Path. Open consultatively using the pattern from your system prompt.
+
+**Opening Template:**
+"Hi ${name}! Your meeting with Vinay is set for ${meetingTime}. I see you mentioned '${challenge}.' Most teams I talk to struggle with one of three things: (1) speed (takes too long to build), (2) maintenance (hard to keep updated), or (3) adoption (sales doesn't use them). Which one hits closest for you?"
+
+**Critical:**
+- Lead with insight (the 3 pain points)
+- Let them self-identify (not a blank question)
+- Keep it 1-3 sentences total
+- Consultative, not interrogative
 
 Start the conversation now.`
         }

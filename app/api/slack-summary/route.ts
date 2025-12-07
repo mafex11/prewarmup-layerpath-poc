@@ -8,13 +8,22 @@ const openai = new OpenAI({
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  console.log('Slack summary endpoint called');
+  
   try {
     const body = await req.json();
     const { messages, customerInfo } = body;
 
+    console.log('Request data:', {
+      messageCount: messages?.length || 0,
+      customerName: customerInfo?.name,
+      customerEmail: customerInfo?.email,
+    });
+
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     
     if (!slackWebhookUrl) {
+      console.warn('SLACK_WEBHOOK_URL not set');
       return NextResponse.json({ success: false, message: 'Webhook not configured' }, { status: 500 });
     }
 
@@ -39,9 +48,15 @@ export async function POST(req: Request) {
       })
       .filter((m: any) => m.text && m.text !== "Hi, I'm ready to chat.");
 
+    console.log('Conversation messages to summarize:', conversationMessages.length);
+    console.log('Sample messages:', conversationMessages.slice(0, 3).map((m: { role: string; text: string }) => ({ role: m.role, preview: m.text.substring(0, 50) })));
+
     if (conversationMessages.length === 0) {
+      console.error('No conversation messages to summarize');
       return NextResponse.json({ success: false, message: 'No conversation to summarize' }, { status: 400 });
     }
+
+    console.log('Generating AI summary...');
     
     // Generate AI summary
     const conversationText = conversationMessages
@@ -77,6 +92,7 @@ Return ONLY the numbered points. If nothing substantial was discussed, write: "N
     });
 
     const summary = summaryResult.choices[0]?.message?.content || 'Summary generation failed.';
+    console.log('AI Summary generated:', summary.substring(0, 200) + '...');
 
     // Format Slack message - clean and plain
     const slackMessage = {
@@ -107,9 +123,11 @@ Completed: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles
       throw new Error(`Slack API error: ${response.status} ${response.statusText}`);
     }
 
+    console.log('Slack summary sent successfully');
     return NextResponse.json({ success: true, message: 'Summary sent to Slack' });
 
   } catch (error: any) {
+    console.error('Failed to send Slack summary:', error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
